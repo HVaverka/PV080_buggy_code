@@ -6,14 +6,14 @@ This module includes examples of:
 2. Code injection via dynamic imports
 3. Unsafe YAML deserialization
 4. Improper use of assert for authentication
-
-It also exposes a simple Flask web endpoint for fetching URLs.
 """
 
 import sys
 import os
-import yaml
+
 import flask
+import yaml
+import importlib
 
 app = flask.Flask(__name__)
 
@@ -29,7 +29,8 @@ def index():
 CONFIG = {"API_KEY": "771df488714111d39138eb60df756e6b"}
 
 
-class Person(object):
+# pylint: disable=too-few-public-methods
+class Person:
     """Simple Person class holding a name."""
 
     def __init__(self, name):
@@ -45,54 +46,60 @@ def fetch_website(urllib_version, url):
     """
     Dynamically imports a urllib version and fetches a URL.
 
-    WARNING: Uses exec(), which is unsafe and vulnerable to code injection.
+    NOTE: Still demonstrates risky dynamic import behavior.
     """
-    exec(f"import urllib{urllib_version} as urllib", globals())
-
     try:
+        urllib = importlib.import_module(f"urllib{urllib_version}")
         http = urllib.PoolManager()
-        r = http.request('GET', url)
-    except:
-        print('Exception')
+        response = http.request("GET", url)
+        return response.data
+    except Exception:
+        print("Exception")
+        return "Error fetching URL"
 
 
 def load_yaml(filename):
     """
     Load and deserialize YAML data from a file.
 
-    WARNING: Uses unsafe yaml.load(), which can lead to code execution.
+    WARNING: Intentionally unsafe for demonstration purposes.
     """
-    stream = open(filename)
-    deserialized_data = yaml.load(stream, Loader=yaml.Loader)
-    return deserialized_data
+    with open(filename) as stream:
+        data = yaml.load(stream, Loader=yaml.Loader)  # intentional vulnerability
+    return data
 
 
 def authenticate(password):
     """
     Authenticate user using an assert statement.
 
-    WARNING: Assertions can be bypassed when Python is run with optimizations.
+    WARNING: Assertions can be bypassed with Python optimizations.
     """
     assert password == "Iloveyou", "Invalid password!"
     print("Successfully authenticated!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Vulnerabilities:")
-    print("1. Format string vulnerability:")
-    print("2. Code injection vulnerability:")
-    print("3. Yaml deserialization vulnerability:")
-    print("4. Use of assert statements vulnerability:")
+    print("1. Format string vulnerability")
+    print("2. Code injection vulnerability")
+    print("3. YAML deserialization vulnerability")
+    print("4. Use of assert statements vulnerability")
+
     choice = input("Select vulnerability: ")
+
     if choice == "1":
         new_person = Person("Vickie")
         print_nametag(input("Please format your nametag: "), new_person)
+
     elif choice == "2":
-        urlib_version = input("Choose version of urllib: ")
-        fetch_website(urlib_version, url="https://www.google.com")
+        urllib_version = input("Choose version of urllib (e.g., 3): ")
+        fetch_website(urllib_version, url="https://www.google.com")
+
     elif choice == "3":
         load_yaml(input("File name: "))
-        print("Executed -ls on current folder")
+        print("Executed ls on current folder")
+
     elif choice == "4":
         password = input("Enter master password: ")
         authenticate(password)
